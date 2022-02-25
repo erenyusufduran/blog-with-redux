@@ -1,29 +1,36 @@
+import _ from "lodash";
 import jsonPlaceholder from "../apis/jsonPlaceholder";
 
 // Action creators must return --plain-- JS objects with a type property!!
 // Middleware to help us make requests in a redux application // - Redux-Thunk
 
-export const fetchPosts = () => async dispatch => {
-    const response = await jsonPlaceholder.get("/posts");
+export const fetchPostsAndUsers = () => async (dispatch,getState) => {
+  await dispatch(fetchPosts());
 
-    dispatch({ type: "FETCH_POSTS", payload: response });
-  };
+  _.chain(getState().posts)
+    .map('userId')
+    .uniq()
+    .forEach(id => dispatch(fetchUser(id)))
+    .value();
+};
 
-/* Normally Action Creators must return action objects, must have a type propery
-      optionally have a 'payload'
-*/
+export const fetchPosts = () => async (dispatch) => {
+  const response = await jsonPlaceholder.get("/posts");
 
-/* 
-    In Redux Thunk, Action Creators can return action objects, NOT MUST
- can return a function. -> If an action objects returned, it must have a type
-                                                           -> optionally have a 'payload'   
-*/
+  dispatch({ type: "FETCH_POSTS", payload: response.data });
+};
 
-/* Action Creator return smt either an object or function. --> dispatch 
-    dispatch bring smt to redux thunk. Redux Thunk is says to Action are you a function?
-    If it is not function it goes reducer normally.
-    If it is a FUNCTION --> We will wait for the async process over. 
-        AND this new action goes to dispatch again, then goes reducers.
+export const fetchUser = (id) => async (dispatch) => {
+  const response = await jsonPlaceholder.get(`/users/${id}`);
 
-        with Redux-Thunk we can change the response aswell.
+  dispatch({ type: "FETCH_USER", payload: response.data });
+};
+
+/*
+export const fetchUser = (id) => (dispatch) => _fetchUser(id, dispatch);
+const _fetchUser = _.memoize(async (id, dispatch) => {
+  const response = await jsonPlaceholder.get(`/users/${id}`);
+
+  dispatch({ type: "FETCH_USER", payload: response.data });
+});  // we are doing it for memoize to this function..
 */
